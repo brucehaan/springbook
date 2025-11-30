@@ -4,9 +4,20 @@ import springbook.user.domain.User;
 
 import java.sql.*;
 
-public abstract class UserDao {
+public class UserDao {
+    private ConnectionMaker connectionMaker;
+
+//    public UserDao(ConnectionMaker connectionMaker) {
+//        this.connectionMaker = connectionMaker;
+//    }
+
+
+    public void setConnectionMaker(ConnectionMaker connectionMaker) {
+        this.connectionMaker = connectionMaker;
+    }
+
     public void add(User user) throws ClassNotFoundException, SQLException {
-        Connection c = getConnection();
+        Connection c = connectionMaker.makeConnection();
         PreparedStatement ps = c.prepareStatement(
                 "insert into users(id, name, password) values(?, ?, ?)"
         );
@@ -20,7 +31,7 @@ public abstract class UserDao {
     }
 
     public User get(String id) throws ClassNotFoundException, SQLException {
-        Connection c = getConnection();
+        Connection c = connectionMaker.makeConnection();
         PreparedStatement ps = c.prepareStatement(
                 "select * from users where id = ?"
         );
@@ -41,13 +52,34 @@ public abstract class UserDao {
         return user;
     }
 
-    public abstract Connection getConnection() throws SQLException, ClassNotFoundException;
 
-//    private Connection getConnection() extneDS {
-//        Class.forName("com.mysql.cj.jdbc.Driver");
-//        return DriverManager.getConnection(
-//                "jdbc:mysql://localhost/springbook", "root", "cometrue"
-//        );
-//    }
+    /*
+    private Connection c;
+    private User user;
+
+    public User get(String id) throws ClassNotFoundException, SQLException {
+        this.c = connectionMaker.makeConnection();
+        PreparedStatement ps = c.prepareStatement(
+                "select * from users where id = ?"
+        );
+        ps.setString(1, id);
+
+        ResultSet rs = ps.executeQuery();
+        rs.next();
+
+        this.user = new User();
+        this.user.setId(rs.getString("id"));
+        this.user.setName(rs.getString("name"));
+        this.user.setPassword(rs.getString("password"));
+
+        rs.close();
+        ps.close();
+        c.close();
+
+        return this.user;
+    }
+     */
+//    public abstract Connection getConnection() throws SQLException, ClassNotFoundException;
+
 }
 
