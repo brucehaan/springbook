@@ -1,54 +1,32 @@
 package springbook.user;
 
+import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
-import org.springframework.context.support.GenericApplicationContext;
 import org.springframework.context.support.GenericXmlApplicationContext;
-import springbook.user.dao.ConnectionMaker;
-import springbook.user.dao.DConnectionMaker;
-import springbook.user.dao.DaoFactory;
 import springbook.user.dao.UserDao;
 import springbook.user.domain.User;
 
 import java.sql.SQLException;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.internal.bytebuddy.matcher.ElementMatchers.is;
+
 public class UserDaoTest {
-    public static void main(String[] args) throws SQLException, ClassNotFoundException {
-//        ApplicationContext context = new AnnotationConfigApplicationContext(DaoFactory.class);
+    @Test
+    public void addAndGet() throws SQLException, ClassNotFoundException {
         ApplicationContext context = new GenericXmlApplicationContext("applicationContext.xml");
-//        ApplicationContext context = new ClassPathXmlApplicationContext("applicationContext.xml");
+
         UserDao dao = context.getBean("userDao", UserDao.class);
-
-        UserDao dao3 = context.getBean("userDao", UserDao.class);
-        UserDao dao4 = context.getBean("userDao", UserDao.class);
-
-        System.out.println("dao3 = " + dao3);
-        System.out.println("dao4 = " + dao4);
-        System.out.println(dao3 == dao4);
-
         User user = new User();
-        user.setId("whiteship");
-        user.setName("백기선");
-        user.setPassword("married");
+        user.setId("gyumee");
+        user.setName("박성철");
+        user.setPassword("springno1");
 
         dao.add(user);
 
-        System.out.println(user.getId() + " 등록 성공");
-
         User user2 = dao.get(user.getId());
-        System.out.println(user2.getName());
-        System.out.println(user2.getPassword());
 
-        System.out.println(user2.getId() + " 조회 성공");
-
-
-//        DaoFactory factory = new DaoFactory();
-//        UserDao dao1 = factory.userDao();
-//        UserDao dao2 = factory.userDao();
-//
-//        System.out.println(dao1);
-//        System.out.println(dao2);
-
+        assertThat(user2.getName()).isEqualTo(user.getName());
+        assertThat(user2.getPassword()).isEqualTo(user.getPassword());
     }
 }
