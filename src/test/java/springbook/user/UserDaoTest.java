@@ -20,15 +20,11 @@ import java.sql.SQLException;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@ExtendWith(SpringExtension.class)
-@ContextConfiguration(locations = "/applicationContext.xml")
-@DirtiesContext // 테스트 메소드에서 애플리케이션 컨텍스트의 구성이나 상태를 변경한다는 것을 테스트 컨텍스트 프레임워크에 알려준다
+//@ExtendWith(SpringExtension.class)
+//@ContextConfiguration(locations = "/test-applicationContext.xml")
+//@DirtiesContext // 테스트 메소드에서 애플리케이션 컨텍스트의 구성이나 상태를 변경한다는 것을 테스트 컨텍스트 프레임워크에 알려준다
 public class UserDaoTest {
 
-    @Autowired
-    private ApplicationContext context;
-
-    @Autowired
     UserDao dao; // UserDao 타입 빈을 직접 DI 받는다
 
     private User user1;
@@ -36,17 +32,15 @@ public class UserDaoTest {
     private User user3;
 
     @BeforeEach
-    public void setUp() {
-        System.out.println(this.context);
-        System.out.println(this);
-
-        this.dao = this.context.getBean("userDao", UserDao.class);
+    void setUp() {
 
         this.user1 = new User("gyumee", "박성철", "springno1");
         this.user2 = new User("leegw700", "이길원", "springno2");
         this.user3 = new User("bumjin", "박범진", "springno3");
 
-
+        // 오브젝트 생성, 관계설정 등을 모두 직접 해준다
+        // 애플리케이션 컨텍스트가 만들어지는 번거로움은 없어졌지만, 매번 새로운 테스트 오브젝트를 만들어야 하는 단점이 있다
+        dao = new UserDao();
         DataSource dataSource = new SingleConnectionDataSource( // 테스트에서 UserDao가 사용할 DataSource 오브젝트를 직접 생성한다.
                 "jdbc:mysql://localhost:3306/springbook", "root", "cometrue", true
         );
@@ -54,7 +48,7 @@ public class UserDaoTest {
     }
 
     @Test
-    public void addAndGet() throws SQLException, ClassNotFoundException {
+    void addAndGet() throws SQLException, ClassNotFoundException {
         dao.deleteAll();
         assertThat(dao.getCount()).isEqualTo(0);
 
@@ -72,7 +66,7 @@ public class UserDaoTest {
     }
 
     @Test
-    public void count() throws SQLException {
+    void count() throws SQLException {
 
         dao.deleteAll();
         assertThat(dao.getCount()).isEqualTo(0);
@@ -89,7 +83,7 @@ public class UserDaoTest {
     }
 
     @Test
-    public void getUserFailure() throws SQLException {
+    void getUserFailure() throws SQLException {
         dao.deleteAll();
         assertThat(dao.getCount()).isEqualTo(0);
 
