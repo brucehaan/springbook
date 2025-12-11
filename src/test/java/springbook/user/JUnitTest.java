@@ -7,6 +7,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -32,6 +33,7 @@ public class JUnitTest {
     static ApplicationContext contextObject = null;
 
     @Test
+    @Transactional
     public void test1() {
         assertFalse(testObjects.contains(this));
         testObjects.add(this);
