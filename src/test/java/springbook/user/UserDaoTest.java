@@ -10,6 +10,7 @@ import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import springbook.user.dao.JdbcContext;
 import springbook.user.dao.UserDao;
 import springbook.user.domain.User;
 
@@ -45,6 +46,12 @@ public class UserDaoTest {
                 "jdbc:mysql://localhost:3306/springbook", "root", "cometrue", true
         );
         dao.setDataSource(dataSource); // 코드에 의한 수동 DI
+
+        // 테스트용 DataSource로 초기화한 JdbcContext를 직접 생성
+        // dao.setJdbcContext(jdbcContext)로 주입하도록 구성해, 수동 DI 상황에서도 jdbcContext 필드가 null이 되지 않도록 함.
+        JdbcContext jdbcContext = new JdbcContext();
+        jdbcContext.setDataSource(dataSource);
+        dao.setJdbcContext(jdbcContext);
     }
 
     @Test
