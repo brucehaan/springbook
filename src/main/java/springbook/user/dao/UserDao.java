@@ -1,5 +1,6 @@
 package springbook.user.dao;
 
+import com.mysql.cj.exceptions.MysqlErrorNumbers;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import springbook.user.domain.User;
@@ -29,9 +30,17 @@ public class UserDao {
                 }
             };
 
-    public void add(final User user) throws SQLException {
-        this.jdbcTemplate.update("insert into users(id, name, password) values(?, ?, ?)",
-                user.getId(), user.getName(), user.getPassword());
+    public void add(final User user) throws DuplicateUserIdException {
+        try {
+            this.jdbcTemplate.update("insert into users(id, name, password) values(?, ?, ?)",
+                    user.getId(), user.getName(), user.getPassword());
+        } catch (SQLException e) {
+            // ErrorCode가 MySQL의 "Duplicate Entry(1062)"이면 예외 전환
+            if (e.getErrorCode() == MysqlErrorNumbers.ER_DUP_ENTRY)
+                throw new DuplicateUserIdException(e); // 예외 전환
+            else
+                throw new RuntimeException(e); // 예외 포장
+        }
     }
 
     public User get(String id) throws SQLException {
