@@ -2,15 +2,13 @@ package springbook.user;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 import org.springframework.jdbc.support.SQLErrorCodeSQLExceptionTranslator;
 import org.springframework.jdbc.support.SQLExceptionTranslator;
-import springbook.user.dao.UserDao;
 import springbook.user.dao.UserDaoJdbc;
+import springbook.user.domain.Level;
 import springbook.user.domain.User;
 
 
@@ -37,9 +35,9 @@ public class UserDaoTest {
     @BeforeEach
     void setUp() {
 
-        this.user1 = new User("gyumee", "박성철", "springno1");
-        this.user2 = new User("leegw700", "이길원", "springno2");
-        this.user3 = new User("bumjin", "박범진", "springno3");
+        this.user1 = new User("gyumee", "박성철", "springno1", Level.BASIC, 1, 0);
+        this.user2 = new User("leegw700", "이길원", "springno2", Level.SILVER, 55, 10);
+        this.user3 = new User("bumjin", "박범진", "springno3", Level.GOLD, 100, 40);
 
         // 오브젝트 생성, 관계설정 등을 모두 직접 해준다
         // 애플리케이션 컨텍스트가 만들어지는 번거로움은 없어졌지만, 매번 새로운 테스트 오브젝트를 만들어야 하는 단점이 있다
@@ -65,12 +63,10 @@ public class UserDaoTest {
         assertThat(dao.getCount()).isEqualTo(2);
 
         User userGet1 = dao.get(user1.getId());
-        assertThat(userGet1.getName()).isEqualTo(user1.getName());
-        assertThat(userGet1.getPassword()).isEqualTo(user1.getPassword());
+        checkSameUser(userGet1, user1);
 
         User userGet2 = dao.get(user2.getId());
-        assertThat(userGet2.getName()).isEqualTo(user2.getName());
-        assertThat(userGet2.getPassword()).isEqualTo(user2.getPassword());
+        checkSameUser(userGet2, user2);
     }
 
     @Test
@@ -128,6 +124,9 @@ public class UserDaoTest {
         assertThat(user1.getId()).isEqualTo(user2.getId());
         assertThat(user1.getName()).isEqualTo(user2.getName());
         assertThat(user1.getPassword()).isEqualTo(user2.getPassword());
+        assertThat(user1.getLevel()).isEqualTo(user2.getLevel());
+        assertThat(user1.getLogin()).isEqualTo(user2.getLogin());
+        assertThat(user1.getRecommend()).isEqualTo(user2.getRecommend());
     }
 
     @Test
@@ -146,5 +145,25 @@ public class UserDaoTest {
             SQLExceptionTranslator translator = new SQLErrorCodeSQLExceptionTranslator(this.dataSource);
             assertThat(translator.translate(null, null, sqlEx)).isInstanceOf(DuplicateKeyException.class);
         }
+    }
+
+    @Test
+    void update() {
+        dao.deleteAll();
+
+        dao.add(user1);
+        dao.add(user2);
+
+        user1.setName("오민규");
+        user1.setPassword("springno6");
+        user1.setLevel(Level.GOLD);
+        user1.setLogin(1000);
+        user1.setRecommend(999);
+        dao.update(user1);
+
+        User user1update = dao.get(user1.getId());
+        checkSameUser(user1, user1update);
+        User user2same = dao.get(user2.getId());
+        checkSameUser(user2, user2same);
     }
 }
