@@ -10,8 +10,8 @@ import javax.sql.DataSource;
 @Configuration
 public class CountingDaoFactory {
     @Bean
-    public UserDao userDao() {
-        UserDao userDao = new UserDao();
+    public UserDaoJdbc userDao() {
+        UserDaoJdbc userDao = new UserDaoJdbc();
         userDao.setDataSource(dataSource());
         return userDao;
     }
