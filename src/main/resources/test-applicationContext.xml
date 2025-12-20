@@ -5,10 +5,15 @@
                         http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
 
   <bean id="userService" class="springbook.user.service.UserService">
-    <property name="userDao" ref="userDao"/>
+    <property name="userDao" ref="userDao" />
+    <property name="transactionManager" ref="transactionManager" />
   </bean>
 
   <bean id="userDao" class="springbook.user.dao.UserDaoJdbc">
+    <property name="dataSource" ref="dataSource" />
+  </bean>
+
+  <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
     <property name="dataSource" ref="dataSource" />
   </bean>
 
