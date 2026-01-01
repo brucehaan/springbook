@@ -3,6 +3,7 @@ package springbook.user.service;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.MailException;
 import org.springframework.mail.MailSender;
@@ -18,9 +19,12 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+import static springbook.user.domain.Level.*;
 import static springbook.user.service.UserServiceImpl.MIN_LOGCOUNT_FOR_SILVER;
 import static springbook.user.service.UserServiceImpl.MIN_RECOMMEND_FOR_GOLD;
 
@@ -44,35 +48,49 @@ class UserServiceTest {
     @BeforeEach
     void setUp() {
         users = Arrays.asList(
-                new User("bumjin", "박범진", "p1", Level.BASIC, MIN_LOGCOUNT_FOR_SILVER - 1, 0),
-                new User("joytouch", "강명성", "p2", Level.BASIC, MIN_LOGCOUNT_FOR_SILVER, 0),
-                new User("erwins", "신승한", "p3", Level.SILVER, 60, MIN_RECOMMEND_FOR_GOLD - 1),
-                new User("madnite1", "이상호", "p4", Level.SILVER, 60, MIN_RECOMMEND_FOR_GOLD),
-                new User("green", "오민규", "p5", Level.GOLD, 100, Integer.MAX_VALUE)
+                new User("bumjin", "박범진", "p1", BASIC, MIN_LOGCOUNT_FOR_SILVER - 1, 0),
+                new User("joytouch", "강명성", "p2", BASIC, MIN_LOGCOUNT_FOR_SILVER, 0),
+                new User("erwins", "신승한", "p3", SILVER, 60, MIN_RECOMMEND_FOR_GOLD - 1),
+                new User("madnite1", "이상호", "p4", SILVER, 60, MIN_RECOMMEND_FOR_GOLD),
+                new User("green", "오민규", "p5", GOLD, 100, Integer.MAX_VALUE)
             );
     }
 
     @Test
     void upgradeLevels() {
-        userDao.deleteAll();
-        for (User user : users) userDao.add(user);
+        // 고립된 테스트에서는 테스트 대상 오브젝트를 직접 생성하면 된다
+        UserServiceImpl userService = new UserServiceImpl();
+
+        // 목 오브젝트로 만든 UserDao를 직접 DI 해준다
+        MockUserDao mockUserDao = new MockUserDao(this.users);
+        userService.setUserDao(mockUserDao);
 
         // 메일 발송 결과를 테스트할 수 있도록 목 오브젝트를 만들어 userService의 의존 오브젝트로 주입해준다
+        // 메일 발송 여부 확인을 위해 목 오브젝트 DI
         MockMailSender mockMailSender = new MockMailSender();
-        userServiceImpl.setMailSender(mockMailSender);
+        userService.setMailSender(mockMailSender);
 
-        userServiceImpl.upgradeLevels();
+        // 테스트 대상 실행
+        userService.upgradeLevels();
 
-        checkLevelUpgraded(users.get(0), false);
-        checkLevelUpgraded(users.get(1), true);
-        checkLevelUpgraded(users.get(2), false);
-        checkLevelUpgraded(users.get(3), true);
-        checkLevelUpgraded(users.get(4), false);
+        // MockUserDao로부터 업데이트 결과를 가져온다
+        List<User> updated = mockUserDao.getUpdated();
 
+        // 업데이트 횟수와 정보를 확인한다
+        assertThat(updated.size()).isEqualTo(2);
+        checkUserAndLevel(updated.get(0), "joytouch", SILVER);
+        checkUserAndLevel(updated.get(1), "madnite1", GOLD);
+
+        // Mock 오브젝트를 이용한 결과 확인
         List<String> request = mockMailSender.getRequests();
         assertThat(request.size()).isEqualTo(2);
         assertThat(request.get(0)).isEqualTo(users.get(1).getEmail());
         assertThat(request.get(1)).isEqualTo(users.get(3).getEmail());
+    }
+
+    private void checkUserAndLevel(User updated, String expectedId, Level expectedLevel) {
+        assertThat(updated.getId()).isEqualTo(expectedId);
+        assertThat(updated.getLevel()).isEqualTo(expectedLevel);
     }
 
     private void checkLevelUpgraded(User user, boolean upgraded) {
@@ -106,7 +124,7 @@ class UserServiceTest {
         User userWithoutLevelRead = userDao.get(userWithoutLevel.getId());
 
         assertThat(userWithLevelRead.getLevel()).isEqualTo(userWithLevel.getLevel());
-        assertThat(userWithoutLevelRead.getLevel()).isEqualTo(Level.BASIC);
+        assertThat(userWithoutLevelRead.getLevel()).isEqualTo(BASIC);
     }
 
     @Test
@@ -151,5 +169,82 @@ class UserServiceTest {
         public void send(SimpleMailMessage... simpleMessages) throws MailException {
 
         }
+    }
+
+    static class MockUserDao implements UserDao {
+
+        private List<User> users; // 레벨 업그레이드 후보 User 오브젝트 목록
+        private List<User> updated = new ArrayList<>(); // 업그레이드 대상 오브젝트를 저장해둘 목록
+
+        private MockUserDao(List<User> users) {
+            this.users = users;
+        }
+
+        public List<User> getUpdated() {
+            return this.updated;
+        }
+
+        // 스텁 기능 제공
+        @Override
+        public List<User> getAll() {
+            return this.users;
+        }
+
+        // 목 오브젝트 기능 제공
+        @Override
+        public void update(User user) {
+            updated.add(user);
+        }
+
+        @Override
+        public void add(User user) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public User get(String id) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void deleteAll() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public int getCount() {
+            return 0;
+        }
+    }
+
+
+    @Test
+    void mockUpgradeLevels() {
+        UserServiceImpl userService = new UserServiceImpl();
+
+        // 다이내믹한 목 오브젝트 생성과 메소드의 리턴 값 설정, 그리고 DI
+        UserDao mockUserDao = mock(UserDao.class);
+        when(mockUserDao.getAll()).thenReturn(this.users);
+        userService.setUserDao(mockUserDao);
+
+        // 리턴값이 없는 메소드를 가진 목 오브젝트는 더욱 간단하게 만들 수 있다
+        MailSender mockMailSender = mock(MailSender.class);
+        userService.setMailSender(mockMailSender);
+
+        userService.upgradeLevels();
+
+        verify(mockUserDao, times(2)).update(any(User.class));
+        verify(mockUserDao, times(2)).update(any(User.class));
+        verify(mockUserDao).update(users.get(1));
+        assertThat(users.get(1).getLevel()).isEqualTo(SILVER);
+        verify(mockUserDao).update(users.get(3));
+        assertThat(users.get(3).getLevel()).isEqualTo(GOLD);
+
+        // 파라미터의 내부 정보를 확인해야 하는 경우에 유용
+        ArgumentCaptor<SimpleMailMessage> mailMessageArg = ArgumentCaptor.forClass(SimpleMailMessage.class);
+        verify(mockMailSender, times(2)).send(mailMessageArg.capture());
+        List<SimpleMailMessage> mailMessages = mailMessageArg.getAllValues();
+        assertThat(Objects.requireNonNull(mailMessages.get(0).getTo())[0]).isEqualTo(users.get(1).getEmail());
+        assertThat(Objects.requireNonNull(mailMessages.get(1).getTo())[0]).isEqualTo(users.get(3).getEmail());
     }
 }
